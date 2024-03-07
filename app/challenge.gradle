@@ -1,0 +1,35 @@
+import java.security.MessageDigest
+
+// Add this task in your app module's build.gradle file
+task generateChallengeHash {
+    // Define file paths
+    def manifestFile = file('src/main/AndroidManifest.xml')
+    def stringsFile = file('src/main/res/values/strings.xml')
+
+    // Generate SHA-256 hash of AndroidManifest.xml
+    def messageDigest = MessageDigest.getInstance("SHA-256")
+    def manifestStr = new String(manifestFile.bytes)
+    def cleanedString = manifestStr.replaceAll("[^A-Za-z0-9]", "")
+    def manifestHash = messageDigest.digest(cleanedString.bytes).collect { String.format("%02x", it) }.join()
+
+    // Read strings.xml content
+    def stringsContent = stringsFile.getText()
+
+    println "Hello, Gradle! $manifestHash"
+    def a = "sec"
+    def b = "ret_k"
+    def c = "l"
+    // Modify strings.xml content
+    def newStringEntry = "<string name=\"cha${c}${c}enge_${a}${b}ey\">$manifestHash</string>"
+    def pattern = "<string name=\"cha${c}${c}enge_${a}${b}ey\">.*?</string>"
+    def found = stringsContent =~ pattern
+    if (found.size() > 0) {
+        // Insert the new string entry before the last closing tag
+        stringsContent = stringsContent.replaceFirst(pattern, newStringEntry)
+    } else {
+        // Insert the new string entry before the last closing tag
+        stringsContent = stringsContent.replaceFirst("</resources>", "$newStringEntry\n</resources>")
+    }
+    // Write the modified content back to strings.xml
+    stringsFile.write(stringsContent)
+}
